@@ -1,4 +1,9 @@
 <? 
+/******************** 
+
+DB Stuff...
+
+********************/
 $dbhost = "";
 $dbname = "";
 $dbuser = "";
@@ -12,6 +17,12 @@ if (mysqli_connect_errno()) {
     die;
 }
 
+/******************** 
+
+Get locations.
+Restrict if needed
+
+********************/
 $lastlocq = $db->query("SELECT * FROM latlng ORDER BY ts"); //WHERE ts > '2015-06-30 00:00:00' AND ts < '2015-06-30 00:00:00'
 $locarr = array();
 $dateArr = array();
@@ -26,6 +37,12 @@ while($lastloc = $lastlocq->fetch_assoc()) {
 }
 $dateArr = array_unique($dateArr);
 
+
+/******************** 
+
+Get distance between points. Used to calculate distances in popovers
+
+********************/
 function getDistance($lat1,$lng1,$lat2,$lng2){
 	$theta = $lng1 - $lng2;
 	$dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
@@ -34,6 +51,14 @@ function getDistance($lat1,$lng1,$lat2,$lng2){
 	$km = $dist*60*1.1515*1.609344;
     return $km;  
 }
+
+
+/******************** 
+
+Get city name of locations.
+The app displays city names on marker popups. This is the function responsable for that. 
+
+********************/
 function get_api ($lat, $long) {
     $get_API = "http://maps.googleapis.com/maps/api/geocode/json?latlng=";
     $get_API .= round($lat,2).",";
@@ -110,7 +135,7 @@ function get_api ($lat, $long) {
 		poly.setMap(map);
 		var path = poly.getPath();
 		
-		var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[0]['lat'] ?>,<?= $locarr[0]['lng'] ?>),map:map,title:'Başlangıç',icon: 'http://tracker.tatlisumotorcusu.com/marker/number_0.png'});
+		var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[0]['lat'] ?>,<?= $locarr[0]['lng'] ?>),map:map,title:'Başlangıç',icon: 'marker/number_0.png'});
 		var content = '<b>Başlangıç<br/><?= date("Y-m-d", strtotime($locarr[0]['ts'])) ?></b>';
 		var infowindow = new google.maps.InfoWindow();
 		google.maps.event.addListener(marker,'click', (function(marker,content,infowindow){ 
@@ -126,6 +151,12 @@ function get_api ($lat, $long) {
 		$day = 0;
 		
 		
+		/******************** 
+		
+		Location path loop
+		
+		********************/
+		
 		foreach ($locarr as $key => $value) { ?>
 			path.push(new google.maps.LatLng(<?= $locarr[$i]['lat'] ?>, <?= $locarr[$i]['lng'] ?>));
 			<? if ($i>0) {
@@ -135,7 +166,7 @@ function get_api ($lat, $long) {
 				if (date("Y-m-d", strtotime($locarr[$i]['ts'])) != date("Y-m-d", strtotime($locarr[$i-1]['ts']))) {
 				     $datediff = strtotime($locarr[$i]['ts']) - strtotime($locarr[$i-1]['ts']);
 				     $day += ceil($datediff/(60*60*24)); ?>
-					var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[$i]['lat'] ?>,<?= $locarr[$i]['lng'] ?>),map:map,title:'GÜN: <?= $day ?>',icon: 'http://tracker.tatlisumotorcusu.com/marker/number_<?= $day ?>.png'});
+					var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[$i]['lat'] ?>,<?= $locarr[$i]['lng'] ?>),map:map,title:'GÜN: <?= $day ?>',icon: 'marker/number_<?= $day ?>.png'});
 					var content = '<b><?= $day ?>. Gün<br/><?= date("Y-m-d", strtotime($locarr[$i-1]['ts'])) ?></b><br/><?= get_api($locarr[$i]['lat'],$locarr[$i]['lng']) ?><br/>Günlük: <?= ceil($dailyDistance) ?> km<br/><b>Toplam: <?= ceil($totalDistance) ?> KM</b>';
 					var infowindow = new google.maps.InfoWindow();
 					google.maps.event.addListener(marker,'click', (function(marker,content,infowindow){ 
@@ -148,7 +179,14 @@ function get_api ($lat, $long) {
 			} } $i++; } ?>
 		
 		
-		var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[$i-1]['lat'] ?>,<?= $locarr[$i-1]['lng'] ?>),map:map,title:'Şu Anda',icon: 'http://tracker.tatlisumotorcusu.com/marker/now.png'});
+		/******************** 
+		
+		Last location marker.
+		Can bounce if desired :)
+		
+		********************/
+		
+		var marker = new google.maps.Marker({position: new google.maps.LatLng(<?= $locarr[$i-1]['lat'] ?>,<?= $locarr[$i-1]['lng'] ?>),map:map,title:'Şu Anda',icon: 'marker/now.png'});
 		var content = '<b><?= date("Y-m-d H:m", strtotime($locarr[$i-1]['ts'])) ?></b><br/><?= get_api($locarr[$i-1]['lat'],$locarr[$i-1]['lng']) ?><br/>Günlük: <?= ceil($dailyDistance) ?> km<br/><b>Toplam: <?= ceil($totalDistance) ?> KM</b>';
 		var infowindow = new google.maps.InfoWindow();
 		google.maps.event.addListener(marker,'click', (function(marker,content,infowindow){ 
